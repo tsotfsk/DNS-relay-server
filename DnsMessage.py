@@ -187,11 +187,12 @@ class Header:
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     """
     fmt = '!H2B4H'
-    size = 
+    size = struct.calcsize(fmt)
 
     def __init__(self, id=0, answer=0, opCode=0, recDes=0,
                  recAv=0, authority=0, rCode=OK, trunc=0,
                  qdCount=0, anCount=0, nsCount=0, arCount=0):
+
         self.id = id
         self.answer = answer
         self.opCode = opCode
@@ -219,12 +220,12 @@ class Header:
         header = strio.read(Header.size)
         r = struct.unpack(Header.fmt, header)
         self.id, byte3, byte4, self.qdCount, self.anCount, self.nsCount, self.arCount = r
-        self.answer = byte3 >> 7 & 1
-        self.opCode = byte3 >> 3 & 15
-        self.authority = byte3 >> 2 & 1
-        self.trunc = byte3 >> 1 & 1
+        self.answer = (byte3 >> 7) & 1
+        self.opCode = (byte3 >> 3) & 15
+        self.authority = (byte3 >> 2) & 1
+        self.trunc = (byte3 >> 1) & 1
         self.recDes = byte3 & 1
-        self.recAv = byte4 >> 7 & 1
+        self.recAv = (byte4 >> 7) & 1
         self.rCode = byte4 & 15
 
 
@@ -240,19 +241,20 @@ class Name:
         """
             eg: www.baidu.com ----> b'\x03www\x05baidu\x03com\x00'
 
-            如果name在前面出现过，则通过À\x0c | name在strio的位置来表示name
+            如果name在前面出现过，则通过\xc000 | name在strio的位置来表示name
 
-            比如query中询问的是www.baidu.com 那么在response包中answer字段会出现À\x0c来代替
+            比如query中询问的是www.baidu.com 那么在response包中answer字段会出现\xc00c来代替
         """
+        # 通过将name放到dict中来缩减包所占的空间
         name = self.name
         while name:
             if nameDict is not None:
                 if name in nameDict:
-                    strio.write(struct.pack('!H', 49152 | nameDict[name]))
+                    strio.write(struct.pack('!H', 0xc000 | nameDict[name]))  # 0xc0是指针，后面14位是偏移量
                     return
                 nameDict[name] = strio.tell() + Header.size
             ind = name.find(b'.')
-            if ind > 0:
+            if ind > 0:  # 不是最后一段
                 label, name = name[:ind], name[ind + 1:]
             else:
                 label = name
