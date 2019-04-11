@@ -118,6 +118,8 @@ class ResourceRecord:
     /                                               /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     """
+    fmt = '!2HIH'
+    size = struct.calcsize(fmt)
 
     def __init__(self, name=b'', type=A, cls=IN, ttl=0, rData=None):
         self.name = Name(name)
@@ -129,13 +131,12 @@ class ResourceRecord:
 
     def encode(self, strio, nameDict):
         self.name.encode(strio, nameDict)
-        strio.write(struct.pack('!2HWH', self.type, self.cls, self.ttl, self.rdlength))
+        strio.write(struct.pack(ResourceRecord.fmt, self.type, self.cls, self.ttl, self.rdlength))
         rdata.encode(strio, nameDict)
 
     def decode(self, strio, nameDict):
         self.name.decode(strio, nameDict)
-        size = struct.calcsize('!2HWH')
-        self.type, self.cls, self.ttl, self.rdlength = struct.unpack('!2HWH', strio.read(size))
+        self.type, self.cls, self.ttl, self.rdlength = struct.unpack(ResourceRecord.fmt, strio.read(ResourceRecord.size))
         rdata = strio.decode(self, cls, ttl)
 
 
@@ -186,7 +187,8 @@ class Header:
     |                    ARCOUNT                    |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     """
-    fmt = '!H2B4H'
+
+    fmt = '!H2B4H'  # 按照2bytes,2*byte,4bytes的网路字节序构造header
     size = struct.calcsize(fmt)
 
     def __init__(self, id=0, answer=0, opCode=0, recDes=0,
@@ -270,35 +272,39 @@ class Name:
             把name从报文中解析出来
             eg:b'\x03www\x05baidu\x03com\x00 -----> www.baidu.com
         """
-        visited = set()
+
         self.name = b''
-        off = 0
+        pos = 0
         while 1:
             l = ord(strio.read(1))
-            if l == 0:
-                if off > 0:
-                    strio.seek(off)
-                return
-            if l >> 6 == 3:
-                ptr = (l & 63) << 8 | ord(strio.read(1)) 
-                if off == 0:
-                    off = strio.tell()
-                strio.seek(ptr)
+            if l == 0:  # 读到名字结束了 
+                if pos > 0:  # 返回原来位置
+                    strio.seek(pos)
+                return 
+            # 遇到指针的处理
+            if l >> 6 == 3:  # 遇到0xc0则后面会紧跟一个偏移量
+                offset = (l & 63) << 8 | ord(strio.read(1)) # 得到14位偏移量 
+                if pos == 0:
+                    pos = strio.tell()  # 记录当前位置
+                strio.seek(offset)
                 continue
-                label = strio.read(l)
-                if self.name == b'':
-                    self.name = label
-                else:
-                    self.name = self.name + b'.' + label
+            # 以下是遇到名字的处理
+            label = strio.read(l)
+            if self.name == b'':
+                self.name = label
+            else:
+                self.name = self.name + b'.' + label
 
-    def __str__(self):
+    def __str__(self):  # 方便测试输出
         return self.name.decode('ascii')
 
 
 class ARecord:
-
+    """
+        A记录主要记录一个域名
+    """
     def __init__(self, address='0.0.0.0', ttl=None):
-        address = socket.inet_aton(address)
+        address = socket.inet_aton(address)  # 将字符串的ip地址转化为网络字节序的ip 
         self.address = address
         self.ttl = ttl
 
