@@ -36,7 +36,7 @@ def testDecodeNmae():
     pass
 
 # Arecord封包测试
-def testEncodeAReocord():
+def testEncodeARecord():
     testRR = DnsMessage.ResourceRecord(b'www.baidu.com', DnsMessage.A, DnsMessage.IN, 0, '127.0.0.1')
     strio = BytesIO()
     testRR.encode(strio)
@@ -45,7 +45,11 @@ def testEncodeAReocord():
 
 # Arecord拆包测试
 def testDecodeARecord():
-    pass
+    record = b'\x03www\x05baidu\x03com\x00\x00\x01\x00\x01\x00\x00\x00\x00\x00\x04\x7f\x00\x00\x01'
+    strio = BytesIO(record)
+    testRR = DnsMessage.ResourceRecord()
+    testRR.decode(strio)
+    print(testRR.name, testRR.cls, testRR.type, testRR.ttl, testRR.rdlength, testRR.rdata.address)
 
 # MXrecord
 
@@ -55,6 +59,6 @@ def  testEncodeResp():
     pass
     
 if __name__ == "__main__":
-    testEncodeAReocord()
+    testDecodeARecord()
     
         

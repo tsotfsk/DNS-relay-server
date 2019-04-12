@@ -285,12 +285,12 @@ class ResourceRecord:
     headFmt = '!2HIH'
     headSize = struct.calcsize(headFmt)
 
-    def __init__(self, name=b'', type=A, cls=IN, ttl=0, rdata=''):
+    def __init__(self, name=b'', type=A, cls=IN, ttl=0, rdata=None):
         self.name = Name(name)
         self.type = type
         self.cls = cls
         self.ttl = ttl
-        if self.type == A:
+        if self.type == A and rdata is not None:
             self.rdata = RecordA(rdata)
         else:
             pass
@@ -308,9 +308,9 @@ class ResourceRecord:
     def decode(self, strio, nameDict=None):
         self.name.decode(strio, nameDict)
         self.type, self.cls, self.ttl, self.rdlength = struct.unpack(ResourceRecord.headFmt, strio.read(ResourceRecord.headSize))
-        rdata = strio.read(self.rdlength)
         if self.type == A:
-            self.rdata = RecordA(rdata)
+            self.rdata = RecordA()
+            self.rdata.decode(strio)
 
 class RecordA:
     """
@@ -318,7 +318,6 @@ class RecordA:
     """
     typ = A
     def __init__(self, address='0.0.0.0'):
-        print(address)
         address = socket.inet_aton(address)  # 将字符串的ip地址转化为网络字节序的ip 
         self.address = address
 
@@ -326,7 +325,8 @@ class RecordA:
         strio.write(self.address)
 
     def decode(self, strio):
-        self.address = strio.read(4)
+        address = strio.read(4)
+        # self.address = socket.inet_ntoa(address)
 
 
 class RecordMX:
