@@ -1,2 +1,0 @@
-# DNS-relay-server
-## homework
