@@ -18,6 +18,12 @@ IXFR, AXFR, MAILB, MAILA, ALLRECORDS = range(251, 256)
 # QCLASS
 IN, CS, CH, HS, ALLCLASS = range(1, 6)
 
+# 调用函数时用
+# recordTypes = {}
+# for name in globals():
+#     if name.startswith('Record'):
+#         recordTypes[globals()[name].type] = globals()[name]
+
 class Message:
     """
     All communications inside of the domain protocol are carried in a single
@@ -93,52 +99,6 @@ class Message:
     def fromStr(self, str):
         strio = BytesIO(str)
         self.decode(strio)
-
-
-class ResourceRecord:
-    """
-                                    1  1  1  1  1  1
-      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                                               |
-    /                                               /
-    /                      NAME                     /
-    |                                               |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                      TYPE                     |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                     CLASS                     |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                      TTL                      |
-    |                                               |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    |                   RDLENGTH                    |
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
-    /                     RDATA                     /
-    /                                               /
-    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-    """
-    fmt = '!2HIH'
-    size = struct.calcsize(fmt)
-
-    def __init__(self, name=b'', type=A, cls=IN, ttl=0, rData=None):
-        self.name = Name(name)
-        self.type = type
-        self.cls = cls
-        self.ttl = ttl
-        self.rdata = rdata
-        self.rdlength = len(rdata)
-
-    def encode(self, strio, nameDict):
-        self.name.encode(strio, nameDict)
-        strio.write(struct.pack(ResourceRecord.fmt, self.type, self.cls, self.ttl, self.rdlength))
-        rdata.encode(strio, nameDict)
-
-    def decode(self, strio, nameDict):
-        self.name.decode(strio, nameDict)
-        self.type, self.cls, self.ttl, self.rdlength = struct.unpack(ResourceRecord.fmt, strio.read(ResourceRecord.size))
-        rdata = strio.decode(self, cls, ttl)
-
 
 class Query:
     """
@@ -265,7 +225,7 @@ class Name:
             strio.write(bytes([ind]))
             strio.write(label)
 
-        strio.write(b'\x00')
+        strio.write(b'\x00')  # 结束的标志
 
     def decode(self, strio, length=None):
         """
@@ -299,14 +259,68 @@ class Name:
         return self.name.decode('ascii')
 
 
-class ARecord:
+class ResourceRecord:
+    """
+                                    1  1  1  1  1  1
+      0  1  2  3  4  5  6  7  8  9  0  1  2  3  4  5
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                                               |
+    /                                               /
+    /                      NAME                     /
+    |                                               |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                      TYPE                     |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                     CLASS                     |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                      TTL                      |
+    |                                               |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    |                   RDLENGTH                    |
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--|
+    /                     RDATA                     /
+    /                                               /
+    +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
+    """
+    headFmt = '!2HIH'
+    headSize = struct.calcsize(headFmt)
+
+    def __init__(self, name=b'', type=A, cls=IN, ttl=0, rdata=''):
+        self.name = Name(name)
+        self.type = type
+        self.cls = cls
+        self.ttl = ttl
+        if self.type == A:
+            self.rdata = RecordA(rdata)
+        else:
+            pass
+
+    def encode(self, strio, nameDict=None):
+        self.name.encode(strio, nameDict)
+        strio.write(struct.pack(ResourceRecord.headFmt, self.type, self.cls, self.ttl, 0))
+        begin = strio.tell()  # 记录此时的位置
+        self.rdata.encode(strio)
+        end = strio.tell()  # 记录写完数据时的位置
+        strio.seek(begin - 2)  
+        strio.write(struct.pack('!H',end - begin)) #
+        strio.seek(end)
+
+    def decode(self, strio, nameDict=None):
+        self.name.decode(strio, nameDict)
+        self.type, self.cls, self.ttl, self.rdlength = struct.unpack(ResourceRecord.headFmt, strio.read(ResourceRecord.headSize))
+        rdata = strio.read(self.rdlength)
+        if self.type == A:
+            self.rdata = RecordA(rdata)
+
+class RecordA:
     """
         A记录主要记录一个域名
     """
-    def __init__(self, address='0.0.0.0', ttl=None):
+    typ = A
+    def __init__(self, address='0.0.0.0'):
+        print(address)
         address = socket.inet_aton(address)  # 将字符串的ip地址转化为网络字节序的ip 
         self.address = address
-        self.ttl = ttl
 
     def encode(self, strio):
         strio.write(self.address)
@@ -315,15 +329,15 @@ class ARecord:
         self.address = strio.read(4)
 
 
-class MXRecord:
+class RecordMX:
     """
         Mail exchange.
     """
+    typ = MX
 
-    def __init__(self, preference=0, name=b'', ttl=None, **kwargs):
+    def __init__(self, preference=0, name=b'', **kwargs):
         self.preference = int(preference)
         self.name = Name(kwargs.get('exchange', name))
-        self.ttl = str2time(ttl)
 
     def encode(self, strio, nameDict=None):
         strio.write(struct.pack('!H', self.preference))
@@ -335,13 +349,15 @@ class MXRecord:
         self.name.decode(strio)
 
 
-class NSRecord:
+class RecordNS:
 
+    typ =  NS
     def __init__(self):
-        self.type = NS
+        pass
 
 
-class CNAMERecord:
+class RecordCNAME:
 
+    typ = CNAME
     def __init__(self):
-        self.type = CNAME
+        pass
