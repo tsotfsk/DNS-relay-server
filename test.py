@@ -1,7 +1,9 @@
-from socket import * 
 import sys
-from DNSMessage import *
 from io import BytesIO
+import socket
+
+from DNSMessage import *
+
 
 # message的request封包测试
 def testEncodeRequestMessage():
@@ -26,6 +28,33 @@ def testDecodeRequestMessage():
           m.header.recAv, m.header.authority, m.header.rCode, m.header.trunc,
           m.header.qdCount, m.header.anCount, m.header.nsCount, m.header.arCount)
     print(m.queries[0].name, m.queries[0].type, m.queries[0].cls)
+
+# message的response包封包测试
+def testEncodeResponseMessage():
+    h = Header(id=0x9ace, answer=1, opCode=0, recDes=0,
+               recAv=1, authority=0, rCode=OK, trunc=0,
+               qdCount=1, anCount=1, nsCount=0, arCount=0)
+    q = Query(b'www.baidu.com', A, IN)
+    rr = ResourceRecord(b'www.baidu.com', A, IN, 201, '127.0.0.1')
+    m = Message(h)
+    m.addQuery(q)
+    m.addAnswer(rr)
+    strio = BytesIO()
+    m.encode(strio)
+    print(strio.getvalue())
+    return m
+
+# message的response包拆包测试
+def testDecodeResponseMessage():
+    m = Message()
+    message = b'\x9a\xce\x80\x80\x00\x01\x00\x01\x00\x00\x00\x00\x03www\x05baidu\x03com\x00\x00\x01\x00\x01\xc0\x0c\x00\x01\x00\x01\x00\x00\x00\xc9\x00\x04\x7f\x00\x00\x01'
+    strio = BytesIO(message)
+    m.decode(strio)
+    print(m.header.id, m.header.answer, m.header.opCode, m.header.recDes, 
+        m.header.recAv, m.header.authority, m.header.rCode, m.header.trunc,
+        m.header.qdCount, m.header.anCount, m.header.nsCount, m.header.arCount)
+    print(m.queries[0].name, m.queries[0].type, m.queries[0].cls)
+    print(m.answers[0].name, m.answers[0].cls, m.answers[0].type, m.answers[0].ttl, m.answers[0].rdlength, m.answers[0].rdata.address)
 
 # header封包测试
 def testEncodeHeader():
@@ -102,8 +131,8 @@ def testSendRequest():
     m = testEncodeRequestMessage()
     m.encode(strio)
     addr = ('127.0.0.1', 60000)
-    testClient = socket(AF_INET, SOCK_DGRAM, 0)
-    testClient.sendto(strio, addr)
+    testClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+    testClient.sendto(strio.getvalue(), addr)
     testClient.close()
 
 # request包接收测试
@@ -119,6 +148,4 @@ def testDecodeResponse():
     pass
         
 if __name__ == "__main__":
-    testSendRequest()
-    
-        
+    testDecodeResponseMessage()

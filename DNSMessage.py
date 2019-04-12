@@ -54,7 +54,7 @@ class Message:
         self.header.encode(strio)
         nameDict = {}
         for query in self.queries:
-            query.encode(strio)
+            query.encode(strio, nameDict)
 
         for rr in self.answers:
             rr.encode(strio, nameDict)
@@ -76,20 +76,23 @@ class Message:
         for i in range(self.header.anCount):
             rr = ResourceRecord()
             rr.decode(strio)
-            self.answers.append(q)
+            self.answers.append(rr)
 
-        for i in range(self.header.anCount):
+        for i in range(self.header.nsCount):
             rr = ResourceRecord()
             rr.decode(strio)
-            self.answers.append(q)
+            self.answers.append(rr)
 
-        for i in range(self.header.anCount):
+        for i in range(self.header.arCount):
             rr = ResourceRecord()
             rr.decode(strio)
-            self.answers.append(q)
+            self.answers.append(rr)
 
     def addQuery(self, query):
         self.queries.append(query)
+
+    def addAnswer(self, record):
+        self.answers.append(record)
 
     def toStr(self):
         strio = BytesIO()
@@ -120,8 +123,8 @@ class Query:
         self.type = type
         self.cls = cls
 
-    def encode(self, strio):
-        self.name.encode(strio)
+    def encode(self, strio, nameDict=None):
+        self.name.encode(strio, nameDict)
         strio.write(struct.pack('!HH', self.type, self.cls))
 
     def decode(self, strio):
@@ -218,7 +221,7 @@ class Name:
                 if name in nameDict:
                     strio.write(struct.pack('!H', 0xc000 | nameDict[name]))  # 0xc0是指针，后面14位是偏移量
                     return
-                nameDict[name] = strio.tell() + Header.size
+                nameDict[name] = strio.tell()
             ind = name.find(b'.')
             if ind > 0:  # 不是最后一段
                 label, name = name[:ind], name[ind + 1:]
@@ -239,7 +242,7 @@ class Name:
 
         self.name = b''
         pos = 0
-        while 1:
+        while True:
             l = ord(strio.read(1))
             if l == 0:  # 读到名字结束了 
                 if pos > 0:  # 返回原来位置
@@ -309,8 +312,8 @@ class ResourceRecord:
         strio.write(struct.pack('!H',end - begin)) #
         strio.seek(end)
 
-    def decode(self, strio, nameDict=None):
-        self.name.decode(strio, nameDict)
+    def decode(self, strio):
+        self.name.decode(strio)
         self.type, self.cls, self.ttl, self.rdlength = struct.unpack(ResourceRecord.headFmt, strio.read(ResourceRecord.headSize))
         if self.type == A:
             self.rdata = RecordA()
