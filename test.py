@@ -1,6 +1,6 @@
 import socket
 import sys
-import DnsMessage
+ DnsMessage
 from io import BytesIO
 
 # message封包测试
