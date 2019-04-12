@@ -43,7 +43,7 @@ class Message:
     +---------------------+
     """
 
-    def __init__(self, header):
+    def __init__(self, header=None):
         self.header = header
         self.queries = []
         self.answers = []
@@ -190,7 +190,11 @@ class Header:
         self.recAv = (byte4 >> 7) & 1
         self.rCode = byte4 & 15
 
-
+    # XXX 这里似乎不太对
+    # def __str__(self):
+    #     return (self.id, self.answer, self.opCode, self.recDes, 
+    #             self.recAv, self.authority, self.rCode, self.trunc,
+    #             self.qdCount, self.anCount, self.nsCount, self.arCount)
 class Name:
     """
         域名的类
@@ -325,7 +329,7 @@ class RecordA:
         strio.write(self.address)
 
     def decode(self, strio):
-        address = strio.read(4)
+        self.address = strio.read(4)
         # self.address = socket.inet_ntoa(address)
 
 

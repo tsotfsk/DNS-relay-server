@@ -1,5 +1,5 @@
 from UDPAsyncServer import *
-from DnsMessage import *
+from DNSMessage import *
 import threading
 import time
 
@@ -16,11 +16,11 @@ class DnsHandler(BaseRequestHandler):
 
 if __name__ == "__main__":
 
-    # 获取命令行参数
-    cmd = sys.argv
-    debug = cmd[1]
-    nameServerAddr = cmd[2]
-    setting = cmd[3]
+    # # 获取命令行参数
+    # cmd = sys.argv
+    # debug = cmd[1]
+    # nameServerAddr = cmd[2]
+    # setting = cmd[3]
 
     # 开启一个线程用作UDP干活,似乎主线程很闲，没必要这么做哦
     with UDPServer(('127.0.0.1', 60000), DnsHandler) as dnsServer:
