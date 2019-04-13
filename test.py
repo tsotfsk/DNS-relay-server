@@ -1,6 +1,7 @@
 import sys
 from io import BytesIO
 import socket
+from time import monotonic as time
 
 from DNSMessage import *
 from UDPAsyncServer import *
@@ -160,16 +161,28 @@ def testRecvResponse():
     '''
     pass
 
-# testUDPAsyncServer
+# testUDPAsyncServer 测试并发性
 def testConcurrency():
     strio = BytesIO()
     m = testEncodeRequestMessage()
     m.encode(strio)
     addr = ('127.0.0.1', 60000)
     testClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
-    # 连续发4次测试并发效果
-    for i in range(10):
+    # 连续发100次测试，观察活跃线程数来测试并发效果
+    for i in range(100):
         testClient.sendto(strio.getvalue(), addr)
     testClient.close()
 
+# 数据库的插入操作
+class Test:
+    def __init__(self, v1=1, v2=2, v3=3, v4=4):
+        self.v1 = v1
+        self.v2 = v2
+        self.v3 = v3
+        self.v4 = v4
+
+
 if __name__ == "__main__":
+    # testConcurrency()
+    test = Test(v1=1,v3=5,v4=3)
+    print(test.v1, test.v2, test.v3, test.v4)

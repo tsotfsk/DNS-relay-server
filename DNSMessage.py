@@ -6,6 +6,9 @@ import sys, socket
 ADDR = '123.125.81.6'
 PORT = 53
 
+# 超时时限
+TIME = 3
+
 # Opcode
 QUERY, IQUERY, STATUS = range(3)
 
@@ -22,7 +25,7 @@ IN, CS, CH, HS, ALLCLASS = range(1, 6)
 # 可以处理的类型
 DEALLIST = [A, NS, CNAME, MX]
 
-# 调用函数时用
+# XXX 反射实现函数调用，但是似乎有点问题
 # recordTypes = {}
 # for name in globals():
 #     if name.startswith('Record'):
@@ -220,7 +223,7 @@ class Name:
         """
         # 通过将name放到dict中来缩减包所占的空间
         name = self.name
-        while name:
+        while name:  # 每个后缀都要存
             if nameDict is not None:
                 if name in nameDict:
                     strio.write(struct.pack('!H', 0xc000 | nameDict[name]))  # 0xc0是指针，后面14位是偏移量
@@ -245,7 +248,7 @@ class Name:
         """
 
         self.name = b''
-        pos = 0
+        pos = 0  # 返回位置
         while True:
             l = ord(strio.read(1))
             if l == 0:  # 读到名字结束了 

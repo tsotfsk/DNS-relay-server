@@ -103,7 +103,7 @@ class UDPServer:
 
     def processRequestThread(self, request, client_address):
 
-        # print(threading.current_thread(), threading.active_count())
+        print(threading.current_thread(), threading.active_count())
         try:
             self.finishRequest(request, client_address)
         except Exception:
@@ -164,6 +164,9 @@ class BaseRequestHandler:
             self.handle()
         finally:
             self.finish()
+
+    def setup(self):
+        pass
 
     def handle(self):
         pass
