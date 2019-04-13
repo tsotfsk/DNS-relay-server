@@ -3,6 +3,7 @@ from io import BytesIO
 import socket
 
 from DNSMessage import *
+from UDPAsyncServer import *
 
 
 # message的request封包测试
@@ -136,16 +137,40 @@ def testSendRequest():
     testClient.close()
 
 # request包接收测试
-def testDecodeRequest():
+def testRecvRequest():
+    '''
+        sendRequest的结果发往本地拆包，在TestServer中被拆包
+    '''
     pass
 
 # response包发送测试
-def testEncodeResponse():
-    pass
+def testSendResponse():
+    strio = BytesIO()
+    m = testEncodeResponseMessage()
+    m.encode(strio)
+    addr = ('123.125.81.6', PORT)
+    testClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+    testClient.sendto(strio.getvalue(), addr)
+    testClient.close()
 
 # response包接收测试
-def testDecodeResponse():
+def testRecvResponse():
+    '''
+        sendRequest的结果发往本地拆包，在TestServer中被拆包
+    '''
     pass
-        
+
+# testUDPAsyncServer
+def testConcurrency():
+    strio = BytesIO()
+    m = testEncodeRequestMessage()
+    m.encode(strio)
+    addr = ('127.0.0.1', 60000)
+    testClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+    # 连续发4次测试并发效果
+    for i in range(10):
+        testClient.sendto(strio.getvalue(), addr)
+    testClient.close()
+
 if __name__ == "__main__":
-    testDecodeResponseMessage()
+    

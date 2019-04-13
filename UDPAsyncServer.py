@@ -24,7 +24,7 @@ class UDPServer:
     def __init__(self, serverAddress, HandleClass):
 
         self.serverAddress = serverAddress
-        self.HandleClass = HandleClass
+        self.HandleClass = HandleClass  # 处理事务专用类
         self.__isShutDown = threading.Event()
         self.__isShutDownRequest = False
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -37,6 +37,9 @@ class UDPServer:
             raise
 
     def serverBind(self):
+        '''
+            nothing
+        '''
         if self.allowReuseAddress:
             self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.serverAddress)
@@ -100,7 +103,7 @@ class UDPServer:
 
     def processRequestThread(self, request, client_address):
 
-        print(threading.current_thread(),threading.active_count())
+        # print(threading.current_thread(), threading.active_count())
         try:
             self.finishRequest(request, client_address)
         except Exception:

@@ -3,6 +3,7 @@ from io import BytesIO
 import sys, socket
 
 # 端口
+ADDR = '123.125.81.6'
 PORT = 53
 
 # Opcode
@@ -17,6 +18,9 @@ IXFR, AXFR, MAILB, MAILA, ALLRECORDS = range(251, 256)
 
 # QCLASS
 IN, CS, CH, HS, ALLCLASS = range(1, 6)
+
+# 可以处理的类型
+DEALLIST = [A, NS, CNAME, MX]
 
 # 调用函数时用
 # recordTypes = {}
