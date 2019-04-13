@@ -165,9 +165,6 @@ class BaseRequestHandler:
         finally:
             self.finish()
 
-    def setup(self):
-        pass
-
     def handle(self):
         pass
 
