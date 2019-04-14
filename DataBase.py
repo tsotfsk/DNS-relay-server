@@ -32,9 +32,7 @@ class DNSDataBase:
 
     # 数据库创建操作
     def create(self):
-        conn = self.linkPoll.connection()
-        print ("Opened database successfully")
-        c = conn.cursor()
+        conn, cursor = self.open()
         # XXX: 由于sqlite3支持的数据类型只有五种,可能不是一个很好的选择，比如其无法识别UNSIGNED，依旧可以插入负数，所以后面做了一些小小的限制
         c.execute('''CREATE TABLE DNS
             (
@@ -45,9 +43,7 @@ class DNSDataBase:
             RDLENGTH    SMALLINT            CHECK(RDLENGTH >=0 AND RDLENGTH <= 65535),
             RDATA           TEXT            NOT NULL,
             PRIMARY KEY     (NAME, TYPE, CLASS, TTL, RDLENGTH, RDATA));''')
-        print("Table DNS created successfully")
-        conn.commit()
-        conn.close()
+        self.close(conn, cursor)
 
 if __name__ == "__main__":
     database = DNSDataBase(mincached=2, maxcached=5, maxconnections=10, database='DNSDataBase.db')

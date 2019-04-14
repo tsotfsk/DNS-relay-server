@@ -3,7 +3,7 @@ from io import BytesIO
 import sys, socket
 
 # 端口
-ADDR = '123.125.81.6'
+ADDR = '10.3.9.6'
 PORT = 53
 
 # 超时时限
@@ -23,7 +23,7 @@ IXFR, AXFR, MAILB, MAILA, ALLRECORDS = range(251, 256)
 IN, CS, CH, HS, ALLCLASS = range(1, 6)
 
 # 可以处理的类型
-DEALLIST = [A, NS, CNAME, MX]
+DEALLIST = [A, MX, NS, CNAME]
 
 # XXX 反射实现函数调用，但是似乎有点问题
 # recordTypes = {}
@@ -299,21 +299,27 @@ class ResourceRecord:
     headFmt = '!2HIH'
     headSize = struct.calcsize(headFmt)
 
-    def __init__(self, name=b'', type=A, cls=IN, ttl=0, rdata=None):
+    def __init__(self, name=b'', type=A, cls=IN, ttl=0, **rdata):
         self.name = Name(name)
         self.type = type
         self.cls = cls
         self.ttl = ttl
-        if self.type == A and rdata is not None:
-            self.rdata = RecordA(rdata)
-        else:
-            pass
+        if len(rdata) > 0:
+            if self.type == A:
+                self.rdata = RecordA(rdata['address'])
+            elif self.type == MX:
+                self.rdata = RecordMX(rdata['preference'], rdata['exchange'])
+            elif self.type == NS:
+                self.rdata = RecordNS(rdata['name'])
+            elif self.type == CNAME:
+                self.type = RecordCNAME(rdata['name'])
+        
 
     def encode(self, strio, nameDict=None):
         self.name.encode(strio, nameDict)
         strio.write(struct.pack(ResourceRecord.headFmt, self.type, self.cls, self.ttl, 0))
         begin = strio.tell()  # 记录此时的位置
-        self.rdata.encode(strio)
+        self.rdata.encode(strio, nameDict)
         end = strio.tell()  # 记录写完数据时的位置
         strio.seek(begin - 2)  
         strio.write(struct.pack('!H',end - begin)) #
@@ -324,7 +330,15 @@ class ResourceRecord:
         self.type, self.cls, self.ttl, self.rdlength = struct.unpack(ResourceRecord.headFmt, strio.read(ResourceRecord.headSize))
         if self.type == A:
             self.rdata = RecordA()
-            self.rdata.decode(strio)
+        elif self.type == MX:
+            self.rdata = RecordMX()
+        elif self.type == NS:
+            self.rdata = RecordNS()
+        elif self.type == CNAME:
+            self.rdata =  RecordCNAME()
+        else:
+            return
+        self.rdata.decode(strio)
 
 class RecordA:
     """
@@ -335,7 +349,7 @@ class RecordA:
         address = socket.inet_aton(address)  # 将字符串的ip地址转化为网络字节序的ip 
         self.address = address
 
-    def encode(self, strio):
+    def encode(self, strio, nameDict=None):
         strio.write(self.address)
 
     def decode(self, strio):
@@ -349,9 +363,9 @@ class RecordMX:
     """
     typ = MX
 
-    def __init__(self, preference=0, name=b'', **kwargs):
+    def __init__(self, preference=0, exchange=b''):
         self.preference = int(preference)
-        self.name = Name(kwargs.get('exchange', name))
+        self.name = Name(exchange)
 
     def encode(self, strio, nameDict=None):
         strio.write(struct.pack('!H', self.preference))
@@ -366,12 +380,27 @@ class RecordMX:
 class RecordNS:
 
     typ =  NS
-    def __init__(self):
-        pass
+    def __init__(self, name=b''):
+        self.name = name
 
+    def encode(self, strio, compDict = None):
+        self.name.encode(strio, compDict)
+
+
+    def decode(self, strio, length = None):
+        self.name = Name()
+        self.name.decode(strio)
 
 class RecordCNAME:
 
     typ = CNAME
-    def __init__(self):
-        pass
+    def __init__(self, name=b''):
+        self.name = name
+      
+    def encode(self, strio, compDict = None):
+        self.name.encode(strio, compDict)
+
+
+    def decode(self, strio, length = None):
+        self.name = Name()
+        self.name.decode(strio)

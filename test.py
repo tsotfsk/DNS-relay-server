@@ -37,7 +37,7 @@ def testEncodeResponseMessage():
                recAv=1, authority=0, rCode=OK, trunc=0,
                qdCount=1, anCount=1, nsCount=0, arCount=0)
     q = Query(b'www.baidu.com', A, IN)
-    rr = ResourceRecord(b'www.baidu.com', A, IN, 201, '127.0.0.1')
+    rr = ResourceRecord(b'www.baidu.com', A, IN, 201, address='127.0.0.1')
     m = Message(h)
     m.addQuery(q)
     m.addAnswer(rr)
@@ -111,7 +111,7 @@ def testDecodeName():
 
 # Arecord封包测试
 def testEncodeARecord():
-    testRR = ResourceRecord(b'www.baidu.com', A, IN, 0, '127.0.0.1')
+    testRR = ResourceRecord(b'www.baidu.com', A, IN, 0, address='127.0.0.1')
     strio = BytesIO()
     testRR.encode(strio)
     print(strio.getvalue())
@@ -166,23 +166,12 @@ def testConcurrency():
     strio = BytesIO()
     m = testEncodeRequestMessage()
     m.encode(strio)
-    addr = ('127.0.0.1', 60000)
-    testClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, 0)
+    addr = ('10.201.8.53', 60000)
+    testClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 连续发100次测试，观察活跃线程数来测试并发效果
-    for i in range(100):
+    for i in range(1):
         testClient.sendto(strio.getvalue(), addr)
     testClient.close()
 
-# 数据库的插入操作
-class Test:
-    def __init__(self, v1=1, v2=2, v3=3, v4=4):
-        self.v1 = v1
-        self.v2 = v2
-        self.v3 = v3
-        self.v4 = v4
-
-
 if __name__ == "__main__":
-    # testConcurrency()
-    test = Test(v1=1,v3=5,v4=3)
-    print(test.v1, test.v2, test.v3, test.v4)
+    testConcurrency()
