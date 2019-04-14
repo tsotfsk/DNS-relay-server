@@ -1,12 +1,12 @@
 import sqlite3
 import queue
 from DBUtils.PooledDB import PooledDB
-
+sqlite3.threadsafety = 2
 class DNSDataBase:
     
     def __init__(self, database, mincached, maxcached, maxconnections):
         self.linkPoll = PooledDB(sqlite3, mincached=mincached, maxcached=maxcached, 
-                                          maxconnections=maxconnections, blocking=True, database=database)                               
+                                          maxconnections=maxconnections, blocking=True, database=database, check_same_thread=False)                               
         try:
             self.create()
         except Exception as e:
@@ -15,7 +15,7 @@ class DNSDataBase:
 
     def open(self):
         conn = self.linkPoll.connection()
-        cur = conn.cursor()
+        cursor = conn.cursor()
         return conn, cursor
 
     def close(self, conn, cursor):
@@ -25,16 +25,20 @@ class DNSDataBase:
 
     def fetchall(self, sqlStr, value):
         conn, cursor = self.open()
-        c.execute(sqlStr,value)
-        result = c.fetchall()
-        self.close(conn, cursor)  
+        try:
+            cursor.execute(sqlStr, value)
+            result = cursor.fetchall()
+        except Exception as e:
+            print(e)
+            return
+        self.close(conn, cursor)
         return result
 
     # 数据库创建操作
     def create(self):
         conn, cursor = self.open()
         # XXX: 由于sqlite3支持的数据类型只有五种,可能不是一个很好的选择，比如其无法识别UNSIGNED，依旧可以插入负数，所以后面做了一些小小的限制
-        c.execute('''CREATE TABLE DNS
+        cursor.execute('''CREATE TABLE DNS
             (
             NAME            TXET            NOT NULL,
             TYPE        SMALLINT            CHECK(TYPE >= 0 AND TYPE <= 65535),

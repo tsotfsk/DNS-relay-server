@@ -12,7 +12,10 @@ class DnsHandler(BaseRequestHandler):
     def handle(self):
         message = self.request[0]
         m = Message()
-        m.fromStr(message)
+        try:
+            m.fromStr(message)
+        except Exception:
+            return
 
         if m.header.answer == 0: # 查询包
             print(m.header.id, m.queries[0].name, m.queries[0].type, m.header.qdCount, m.header.anCount)
@@ -26,15 +29,16 @@ class DnsHandler(BaseRequestHandler):
             message = self.transform(m)  # 消息id转换
             self.relay(message, (ADDR, PORT))  # 转发
         else:
-            # TODO 查找数据库
-            
-            result = None
-            if result is None:  # 查不到结果就把请求转发出去
+            sqlStr = 'select * from  DNS where NAME = ? and TYPE = ?'
+            value = (m.queries[0].name.name, CNAME)
+            result = database.fetchall(sqlStr, value)  
+            print(result) 
+            rr = ResourceRecord(result[0], result[1], result[2], result[3], result[])                
+            if len(result) == 0:  # 查不到结果就把请求转发出去
                 message = self.transform(m)  
-                print(idTransDict)
                 self.relay(message, (ADDR, PORT))
             else:  # 自己pack包
-                m.answers = result
+                m.answers = rr
                 m.answer = 1
                 # TODO 改包的header之类的
                 message = m.toStr()
@@ -55,10 +59,12 @@ class DnsHandler(BaseRequestHandler):
                     return
             for rr in m.answers:    
                 # TODO 放到数据库
-                execStr = 'insert into DNS values (?,?,?,?,?,?)'
+                sqlStr = 'insert into DNS values (?,?,?,?,?,?)'
                 field = BytesIO()
                 rr.rdata.encode(field)
-                value = (rr.name, rr.type, rr.cls, rr.ttl, rr.rdlength, field.getvalue())
+                print(field.getvalue())
+                value = (rr.name.name, rr.type, rr.cls, rr.ttl, rr.rdlength, str(field.getvalue()))
+                database.fetchall(sqlStr, value)
 
     def transform(self, m):
         randID = random.randint(0, 65535)
@@ -110,7 +116,7 @@ if __name__ == "__main__":
         serverThread = threading.Thread(target = dnsServer.server_forever)
         serverThread.daemon = True
         serverThread.start()
-        print('DnsServer is runnng in thread', serverThread.name)
+        print('DnsServer is runnng in thread', serverThread.name , serverThread.ident)
 
         while True:
             1 == 2 
