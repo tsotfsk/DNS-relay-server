@@ -14,7 +14,7 @@ class DNSDataBase:
             pass
 
     def open(self):
-        conn = self.linkPoll.connection()
+        conn = self.linkPoll.connection(shareable=False)
         cursor = conn.cursor()
         return conn, cursor
 
