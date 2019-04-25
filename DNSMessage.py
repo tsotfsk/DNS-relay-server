@@ -3,7 +3,7 @@ from io import BytesIO
 import sys, socket
 
 # 端口
-ADDR = '10.3.9.6'
+ADDR = '123.125.81.6'
 PORT = 53
 
 # 超时时限
@@ -354,7 +354,7 @@ class RecordA:
 
     def decode(self, strio):
         self.address = strio.read(4)
-        # self.address = socket.inet_ntoa(address)
+        # self.addresocket.inet_ntoa(address)ss = 
 
 
 class RecordMX:
