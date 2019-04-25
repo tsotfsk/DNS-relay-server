@@ -46,7 +46,7 @@ class DNSDataBase:
             TTL              INT            CHECK(TTL >= 0),
             RDLENGTH    SMALLINT            CHECK(RDLENGTH >=0 AND RDLENGTH <= 65535),
             RDATA           TEXT            NOT NULL,
-            PRIMARY KEY     (NAME, TYPE, CLASS, TTL, RDLENGTH, RDATA));''')
+            PRIMARY KEY     (NAME, TYPE, CLASS, RDLENGTH, RDATA));''')
         self.close(conn, cursor)
 
 if __name__ == "__main__":
