@@ -17,7 +17,7 @@ class DnsHandler(BaseRequestHandler):
         except Exception:
             return
 
-        if m.header.answer == 0: # 查询包
+        if m.header.answer == 0:  # 查询包
             print(m.header.id, m.queries[0].name, m.queries[0].type, m.header.qdCount, m.header.anCount)
             self.handleRequest(m)         
         else:  # 应答包
@@ -38,7 +38,7 @@ class DnsHandler(BaseRequestHandler):
                 message = self.transform(m)  
                 self.relay(message, (ADDR, PORT))
             else:  # 自己pack包
-                m.answers = rr
+                m.addAnswer(rr)
                 m.answer = 1
                 # TODO 改包的header之类的
                 message = m.toStr()
@@ -60,10 +60,14 @@ class DnsHandler(BaseRequestHandler):
             for rr in m.answers:    
                 # TODO 放到数据库
                 sqlStr = 'insert into DNS values (?,?,?,?,?,?)'
-                field = BytesIO()
-                rr.rdata.encode(field)
-                print(field.getvalue())
-                value = (rr.name.name, rr.type, rr.cls, rr.ttl, rr.rdlength, str(field.getvalue()))
+                if rr.type == MX:
+                    rdata = str(rr.rdata.preference) + '|' + rr.rdata.name.name               
+                elif rr.type == A:
+                    rdata = socket.inet_ntoa(rr.rdata.address)
+                else:
+                    rdata = rr.rdata.name.name
+                print(rdata)
+                value = (rr.name.name, rr.type, rr.cls, rr.ttl, rr.rdlength, rdata)
                 database.fetchall(sqlStr, value)
 
     def transform(self, m):
@@ -112,7 +116,7 @@ if __name__ == "__main__":
     lock = threading.Lock()
     database = DNSDataBase(mincached=2, maxcached=5, maxconnections=10, database='DNSDataBase.db')
     # 开启一个线程用作UDP干活,似乎主线程很闲，没必要这么做哦
-    with UDPServer(('10.201.8.53', 60000), DnsHandler) as dnsServer:
+    with UDPServer(('10.28.128.174', 60000), DnsHandler) as dnsServer:
         serverThread = threading.Thread(target = dnsServer.server_forever)
         serverThread.daemon = True
         serverThread.start()
