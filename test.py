@@ -166,7 +166,7 @@ def testConcurrency():
     strio = BytesIO()
     m = testEncodeRequestMessage()
     m.encode(strio)
-    addr = ('10.201.8.53', 60000)
+    addr = ('10.28.128.174', 60000)
     testClient = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 连续发100次测试，观察活跃线程数来测试并发效果
     for i in range(1):
@@ -175,3 +175,4 @@ def testConcurrency():
 
 if __name__ == "__main__":
     testConcurrency()
+
