@@ -1,8 +1,10 @@
 import sqlite3
 import queue
 from DBUtils.PooledDB import PooledDB
+from DNSMessage import *
 sqlite3.threadsafety = 2
-class DNSDataBase:
+
+class DataBase:
     
     def __init__(self, database, mincached, maxcached, maxconnections):
         self.linkPoll = PooledDB(sqlite3, mincached=mincached, maxcached=maxcached, 
@@ -34,6 +36,12 @@ class DNSDataBase:
         self.close(conn, cursor)
         return result
 
+    # 数据库创建操作，要重载
+    def create(self):
+        pass
+
+class DNSDataBase(DataBase):
+
     # 数据库创建操作
     def create(self):
         conn, cursor = self.open()
@@ -49,5 +57,22 @@ class DNSDataBase:
             PRIMARY KEY     (NAME, TYPE, CLASS, RDLENGTH, RDATA));''')
         self.close(conn, cursor)
 
+    # 书库读取的一行转化为资源记录
+    def toRR(self, item):
+        if item[1] == A:
+            rr =  ResourceRecord(item[0], item[1], item[2], item[3], address=item[4])
+        elif item[1] ==  NS or item[1] == CNAME:
+            rr = ResourceRecord(item[0], item[1], item[2], item[3], name=item[4])
+        elif item[1] == MX:
+            rList = item[4].split('|')
+            print(int(rList[0]))
+            rr =  ResourceRecord(item[0], item[1], item[2], item[3], preference=int(rList[0]), exchange=rList[1])
+        return rr
+
 if __name__ == "__main__":
     database = DNSDataBase(mincached=2, maxcached=5, maxconnections=10, database='DNSDataBase.db')
+    rr = database.toRR((b'www.baidu.com', A, IN, 201, '127.0.0.1'))
+    print(rr.name)
+    # rr = database.toRR((b'www.baidu.com', MX, IN, 201, '1|baidu.com'))
+    # print(rr.rdata.preference, rr.rdata.name)
+    
