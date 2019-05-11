@@ -381,7 +381,7 @@ class RecordMX:
         self.name.encode(strio, nameDict)
 
     def decode(self, strio, length=None):
-        self.preference = struct.unpack('!H', strio.read(2))
+        self.preference = int(struct.unpack('!H', strio.read(2))[0])
         self.name = Name()
         self.name.decode(strio)
 
