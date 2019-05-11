@@ -8,7 +8,7 @@ CLIENT = '10.201.8.53'
 PORT = 53
 
 # 超时时限
-TIME = 3
+TIMEOUT = 3
 
 # Opcode
 QUERY, IQUERY, STATUS = range(3)
