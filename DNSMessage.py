@@ -3,7 +3,8 @@ from io import BytesIO
 import sys, socket
 
 # 端口
-ADDR = '123.125.81.6'
+ADDR = '10.3.9.5'
+CLIENT = '10.201.8.53'
 PORT = 53
 
 # 超时时限
@@ -270,7 +271,10 @@ class Name:
                 self.name = self.name + b'.' + label
 
     def __str__(self):  # 方便测试输出
-        return self.name.decode('ascii')
+        try:
+            return self.name.decode('ascii')
+        except Exception:
+            return self.name
 
 
 class ResourceRecord:
@@ -310,9 +314,9 @@ class ResourceRecord:
             elif self.type == MX:
                 self.rdata = RecordMX(rdata['preference'], rdata['exchange'])
             elif self.type == NS:
-                self.rdata = RecordNS(rdata['name'])
+                self.rdata = RecordNS(rdata['nname'])
             elif self.type == CNAME:
-                self.type = RecordCNAME(rdata['name'])
+                self.rdata = RecordCNAME(rdata['cname'])
         
 
     def encode(self, strio, nameDict=None):
@@ -328,6 +332,7 @@ class ResourceRecord:
     def decode(self, strio):
         self.name.decode(strio)
         self.type, self.cls, self.ttl, self.rdlength = struct.unpack(ResourceRecord.headFmt, strio.read(ResourceRecord.headSize))
+        # self.rdata = strio.read(self.rdlength)
         if self.type == A:
             self.rdata = RecordA()
         elif self.type == MX:
@@ -354,7 +359,7 @@ class RecordA:
 
     def decode(self, strio):
         self.address = strio.read(4)
-        # self.addresocket.inet_ntoa(address)ss = 
+        # self.addresocket.inet_ntoa(address)
 
 
 class RecordMX:
@@ -372,7 +377,7 @@ class RecordMX:
         self.name.encode(strio, nameDict)
 
     def decode(self, strio, length=None):
-        self.preference = struct.unpack('!H', readPrecisely(strio, 2))[0]
+        self.preference = struct.unpack('!H', strio.read(2))
         self.name = Name()
         self.name.decode(strio)
 
@@ -381,11 +386,10 @@ class RecordNS:
 
     typ =  NS
     def __init__(self, name=b''):
-        self.name = name
+        self.name = Name(name)
 
     def encode(self, strio, compDict = None):
         self.name.encode(strio, compDict)
-
 
     def decode(self, strio, length = None):
         self.name = Name()
@@ -395,7 +399,7 @@ class RecordCNAME:
 
     typ = CNAME
     def __init__(self, name=b''):
-        self.name = name
+        self.name = Name(name)
       
     def encode(self, strio, compDict = None):
         self.name.encode(strio, compDict)
