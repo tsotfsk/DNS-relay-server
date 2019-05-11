@@ -32,7 +32,6 @@ class DnsHandler(BaseRequestHandler):
             sqlStr = 'select * from  DNS where NAME = ? and TYPE = ?'
             value = (m.queries[0].name.name, CNAME)
             result = database.fetchall(sqlStr, value)  
-            print(result)
                          
             if len(result) == 0:  # 查不到结果就把请求转发出去
                 message = self.transform(m)  
@@ -52,7 +51,7 @@ class DnsHandler(BaseRequestHandler):
         message, addr, timeStamp = self.inverseTransform(m)  # 反变换得到ip和消息
         # 如果超时就return了,不再转发
         curtime = time()
-        if curtime - timeStamp > 3:
+        if curtime - timeStamp > TIMEOUT:
             return
 
         self.relay(message, addr) 
@@ -70,34 +69,46 @@ class DnsHandler(BaseRequestHandler):
                     rdata = socket.inet_ntoa(rr.rdata.address)
                 else:
                     rdata = rr.rdata.name.name
-                print(rdata)
                 value = (rr.name.name, rr.type, rr.cls, rr.ttl, rdata)
                 database.fetchall(sqlStr, value)
 
     # ID变换
     def transform(self, m):
-        randID = random.randint(0, 65535)
+        idLock.acquire()
+        self.incID(packID)
         # 加入到消息转换字典中
         dictLock.acquire()
-        if self.clientAddress in idTransDict:
-            idTransDict[self.clientAddress].append((m.header.id, randID, time()))# 字典记录消息id转换的对应关系,一个IP一个dict,一对消息转换对应其中一个键值对
-        else:
-            idTransDict[self.clientAddress] = []
-            idTransDict[self.clientAddress].append((m.header.id, randID, time()))
-        m.header.id = randID
+        # if self.clientAddress in idTransDict:
+        #     idTransDict[self.clientAddress].append((m.header.id, packID, time()))# 字典记录消息id转换的对应关系,一个IP一个dict,一对消息转换对应其中一个键值对
+        # else:
+        #     idTransDict[self.clientAddress] = []
+        #     idTransDict[self.clientAddress].append((m.header.id, packID, time()))
+
+        idTransDict[packID]=(self.clientAddress, m.header.id, time())
+        print('packID is', packID, 'mapping is', idTransDict[packID])
+        m.header.id = packID
+        self.incID(packID)
+        idLock.release()
         dictLock.release()
         return m.toStr()
 
     # ID反变换
     def inverseTransform(self, m):
+        # dictLock.acquire()
+        # for addr, transList in idTransDict.items():
+        #     for (front, back, timeStamp) in transList:
+        #         if m.header.id == back:
+        #             m.header.id = front
+        #             idTransDict.pop(addr)
+        #             dictLock.release()
+        #             return m.toStr(), addr, timeStamp
+        
         dictLock.acquire()
-        for addr, transList in idTransDict.items():
-            for (front, back, timeStamp) in transList:
-                if m.header.id == back:
-                    m.header.id = front
-                    idTransDict.pop(addr)
-                    dictLock.release()
-                    return m.toStr(), addr, timeStamp
+        addr, headID, timeStamp = idTransDict[m.header.id]
+        idTransDict.pop(m.header.id)
+        m.header.id = headID
+        dictLock.release()
+        return m.toStr(), addr, timeStamp
 
     def relay(self, message, addr):
         self.server.socket.sendto(message, addr)
@@ -108,7 +119,11 @@ class DnsHandler(BaseRequestHandler):
     def unpackMessage(self, message):  # 这里message是拆包对象
         pass
 
-
+    def incID(self, packID):
+        if packID == 65535:
+            packID = 0
+        else:
+            packID += 1
 
 if __name__ == "__main__":
 
@@ -120,7 +135,10 @@ if __name__ == "__main__":
 
     idTransDict = {}  # 消息ID转换的字典
     dictLock = threading.Lock()
-    varLock = threading.Lock()
+
+    packID = 0  # 消息id在各线程之间的产生也要互斥访问
+    idLock = threading.Lock()
+
     database = DNSDataBase(mincached=2, maxcached=5, maxconnections=10, database='DNSDataBase.db')
     # 开启一个线程用作UDP干活,似乎主线程很闲，没必要这么做哦
     with UDPServer((CLIENT, 60000), DnsHandler) as dnsServer:
