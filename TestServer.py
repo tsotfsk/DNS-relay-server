@@ -11,79 +11,93 @@ class DnsHandler(BaseRequestHandler):
 
     def handle(self):
         message = self.request[0]
-        m = Message()
         try:
-            m.fromStr(message)
-        except Exception:
-            return
-            
-        if m.header.answer == 0:  # 查询包
-            print(m.header.id, m.queries[0].name, m.queries[0].type, m.header.qdCount, m.header.anCount)
-            self.handleRequest(m)         
-        else:  # 应答包
-            print(m.header.id, m.queries[0].name, m.queries[0].type, m.header.qdCount, m.header.anCount)
-            self.handleResponse(m)
+            strio = BytesIO(message)
+            header =  Header()
+            header.decode(strio)
 
-    def handleRequest(self, m):
+            query = Query()
+            query.decode(strio)
+        except Exception as e:
+            print(e)
+            return
+        print(query.type)
+        print('收到的消息的ID以及请求内容', header.id, query.name, TYPEDICT[query.type],
+            header.qdCount, header.anCount, header.nsCount, header.arCount)
+
+        if header.answer == 0:  # 查询包
+            self.handleRequest(message)         
+        else:  # 应答包
+            self.handleResponse(message, query, header)
+
+    def handleRequest(self, message):
+        '''请求报文的处理'''
+        m = Message()
+        m.fromStr(message)
         if m.queries[0].type not in DEALLIST: # 无法处理的类型就转发
             message = self.transform(m)  # 消息id转换
             self.relay(message, (ADDR, PORT))  # 转发
+            print('请求消息不在可处理范围内,转发数据包到DNS服务器','\n')
         else:
             sqlStr = 'select * from  DNS where NAME = ? and TYPE = ?'
-            value = (m.queries[0].name.name, CNAME)
+            value = (m.queries[0].name.name, m.queries[0].type)
             result = database.fetchall(sqlStr, value)  
                          
             if len(result) == 0:  # 查不到结果就把请求转发出去
-                message = self.transform(m)  
+                message = self.transform(m)
+                print('类型可以处理，但在数据库中查找不到对应的资源记录')
                 self.relay(message, (ADDR, PORT))
             else:  # 自己pack包
+                print('数据库中查到了对应的资源记录')
                 # 整理包
                 for item in result:
-                    print(item[0], item[1], item[2], item[3], item[4])
+                    # print('the rr:', item[0], item[1], item[2], item[3], item[4])
                     rr = database.toRR(item)
                     m.addAnswer(rr)
                 m.answer = 1
+                m.header.anCount = len(result)
                 # TODO 改包的header之类的
                 message = m.toStr()
                 self.relay(message, self.clientAddress)
                 
-    def handleResponse(self, m):
-        message, addr, timeStamp = self.inverseTransform(m)  # 反变换得到ip和消息
+    def handleResponse(self, message, query, header):
+        message, addr, timeStamp = self.inverseTransform(message, header)  # 反变换得到ip和时间戳
         # 如果超时就return了,不再转发
         curtime = time()
         if curtime - timeStamp > TIMEOUT:
             return
 
-        self.relay(message, addr) 
+        print('数据包未超时，转发成功')
+        self.relay(message, addr)
+
         # 之后把包内数据插入或更新到数据库
-        if len(m.authority) == 0 and len(m.additional) == 0:  # 没有authority和additional字段才缓存, 有的话不缓存包
-            for rr in m.answers: 
-                if rr.type not in DEALLIST:  # 如果answer字段也出现了要求之外的type,也不缓存包
-                    return
-            for rr in m.answers:    
-                # TODO 放到数据库
-                sqlStr = 'insert into DNS values (?,?,?,?,?)'
-                if rr.type == MX:
-                    rdata = str(rr.rdata.preference) + '|' + rr.rdata.name.name               
-                elif rr.type == A:
-                    rdata = socket.inet_ntoa(rr.rdata.address)
-                else:
-                    rdata = rr.rdata.name.name
-                value = (rr.name.name, rr.type, rr.cls, rr.ttl, rdata)
-                database.fetchall(sqlStr, value)
+        if query.type in DEALLIST:
+            if header.arCount == 0 and header.nsCount == 0:  # 没有authority和additional字段才缓存, 有的话不缓存包
+                m = Message()
+                m.fromStr(message)
+                print('转化后的数据包ID为', m.header.id)
+                for rr in m.answers:    
+                    # TODO 放到数据库
+                    sqlStr = 'insert into DNS values (?,?,?,?,?)'
+                    if rr.type == MX:
+                        rdata = str(rr.rdata.preference) + '|' + rr.rdata.name.name               
+                    elif rr.type == A:
+                        rdata = socket.inet_ntoa(rr.rdata.address)
+                    else:
+                        rdata = rr.rdata.name.name
+                    value = (rr.name.name, rr.type, rr.cls, rr.ttl, rdata)
+                    database.fetchall(sqlStr, value)
+            else:
+                print('存在权威字段和附加字段，不存储数据包到数据库中')
+        else:
+            print('要处理的类型属于A,CNAME,MX,NS, 不存储数据包到数据库中')
 
     # ID变换
     def transform(self, m):
-        idLock.acquire()
-        self.incID(packID)
-        # 加入到消息转换字典中
-        dictLock.acquire()
-        # if self.clientAddress in idTransDict:
-        #     idTransDict[self.clientAddress].append((m.header.id, packID, time()))# 字典记录消息id转换的对应关系,一个IP一个dict,一对消息转换对应其中一个键值对
-        # else:
-        #     idTransDict[self.clientAddress] = []
-        #     idTransDict[self.clientAddress].append((m.header.id, packID, time()))
 
+        #id以及dict在各个线程之间要互斥的访问
+        idLock.acquire()
+        dictLock.acquire()
         idTransDict[packID]=(self.clientAddress, m.header.id, time())
         print('packID is', packID, 'mapping is', idTransDict[packID])
         m.header.id = packID
@@ -93,22 +107,21 @@ class DnsHandler(BaseRequestHandler):
         return m.toStr()
 
     # ID反变换
-    def inverseTransform(self, m):
-        # dictLock.acquire()
-        # for addr, transList in idTransDict.items():
-        #     for (front, back, timeStamp) in transList:
-        #         if m.header.id == back:
-        #             m.header.id = front
-        #             idTransDict.pop(addr)
-        #             dictLock.release()
-        #             return m.toStr(), addr, timeStamp
-        
+    def inverseTransform(self, message, header):
+
+        # 检索消息映射
         dictLock.acquire()
-        addr, headID, timeStamp = idTransDict[m.header.id]
-        idTransDict.pop(m.header.id)
-        m.header.id = headID
+        addr, preID, timeStamp = idTransDict[header.id]
+        idTransDict.pop(header.id)
+        header.id = preID
         dictLock.release()
-        return m.toStr(), addr, timeStamp
+
+        # 重写ID
+        strio = BytesIO(message)
+        strio.seek(0)
+        header.encode(strio)
+
+        return strio.getvalue(), addr, timeStamp
 
     def relay(self, message, addr):
         self.server.socket.sendto(message, addr)
@@ -141,7 +154,7 @@ if __name__ == "__main__":
 
     database = DNSDataBase(mincached=2, maxcached=5, maxconnections=10, database='DNSDataBase.db')
     # 开启一个线程用作UDP干活,似乎主线程很闲，没必要这么做哦
-    with UDPServer((CLIENT, 60000), DnsHandler) as dnsServer:
+    with UDPServer((CLIENT, 53), DnsHandler) as dnsServer:
         serverThread = threading.Thread(target = dnsServer.server_forever)
         serverThread.daemon = True
         serverThread.start()
