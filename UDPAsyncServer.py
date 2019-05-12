@@ -1,5 +1,3 @@
-
-
 __version__ = '0.0'
 
 import socket
@@ -103,7 +101,7 @@ class UDPServer:
 
     def processRequestThread(self, request, client_address):
 
-        print(threading.current_thread(), threading.active_count())
+        print('--------正在处理的线程ID:', threading.current_thread().ident, '当前活跃线程数:',threading.active_count(), '--------')
         try:
             self.finishRequest(request, client_address)
         except Exception:
