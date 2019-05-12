@@ -13,7 +13,7 @@ class DataBase:
         self.create()
 
     def open(self):
-        print('数据库打开')
+        # print('数据库打开')
         conn = self.linkPoll.connection(shareable=False)
         cursor = conn.cursor()
         return conn, cursor
@@ -22,7 +22,7 @@ class DataBase:
         cursor.close()
         conn.commit()
         conn.close()
-        print('数据库关闭')
+        # print('数据库关闭')
 
     def fetchall(self, sqlStr, value):
         conn, cursor = self.open()
@@ -49,15 +49,16 @@ class DNSDataBase(DataBase):
         try:
             cursor.execute('''CREATE TABLE DNS
                 (
-                NAME            TXET            NOT NULL,
+                NAME            TEXT            NOT NULL,
                 TYPE        SMALLINT            CHECK(TYPE >= 0 AND TYPE <= 65535),
                 CLASS       SMALLINT            CHECK(CLASS >= 0 AND CLASS <= 65535),
                 TTL              INT            CHECK(TTL >= 0),
                 RDATA           TEXT            NOT NULL,
                 PRIMARY KEY     (NAME, TYPE, CLASS, RDATA));''')
         except Exception as e:
-            print(e)
-        print(11111)
+            pass
+            # print(e)
+    
         self.close(conn, cursor)
 
     # 书库读取的一行转化为资源记录
@@ -70,19 +71,19 @@ class DNSDataBase(DataBase):
             rr = ResourceRecord(item[0].encode('ascii'), item[1], item[2], item[3], nname=item[4].encode('ascii'))
         elif item[1] == MX:
             rList = item[4].split('|')
-            print(int(rList[0]))
+            # print(int(rList[0]))
             rr =  ResourceRecord(item[0].encode('ascii'), item[1], item[2], item[3], preference=int(rList[0]), exchange=rList[1].encode('utf-8'))
         return rr
 
 if __name__ == "__main__":
     database = DNSDataBase(mincached=0, maxcached=0, maxconnections=10, database='DNSDataBase.db')
     # rr = database.toRR((b'www.baidu.com', A, IN, 201, '127.0.0.1'))
-    # print(rr.name)
+    # # print(rr.name)
     rr = database.toRR(('www.baidu.com', CNAME, IN, 201, 'www.a.fen.com'))
-    print(rr.name.name, type(rr.name.name))
-    print(rr.ttl, type(rr.ttl))
-    print(rr.cls,type(rr.cls))
-    print(rr.cls,type(rr.type))
+    # print(rr.name.name, type(rr.name.name))
+    # print(rr.ttl, type(rr.ttl))
+    # print(rr.cls,type(rr.cls))
+    # print(rr.cls,type(rr.type))
     # rr = database.toRR((b'www.baidu.com', MX, IN, 201, '1|baidu.com'))
-    # print(rr.rdata.preference, rr.rdata.name)
+    # # print(rr.rdata.preference, rr.rdata.name)
     
