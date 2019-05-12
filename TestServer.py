@@ -12,23 +12,37 @@ class DnsHandler(BaseRequestHandler):
     def handle(self):
         message = self.request[0]
         try:
+            # 看看包头
             strio = BytesIO(message)
             header =  Header()
             header.decode(strio)
 
+            # 看看查询
             query = Query()
             query.decode(strio)
         except Exception as e:
-            print(e)
+            # print(e)
             return
-        print('收到的消息的ID以及请求内容', header.id, query.name, TYPEDICT[query.type],
-            header.qdCount, header.anCount, header.nsCount, header.arCount)
+        # print('收到的消息的ID以及请求内容', header.id, query.name, TYPEDICT[query.type],
+        #    header.qdCount, header.anCount, header.nsCount, header.arCount)
+
+        # 看在不在屏蔽表里
+        if(query.type == A):
+            # print(query.name.name.decode('ascii'), query.type )
+            if(self.isShield(query.name.name.decode('ascii'))):
+                header.answer = 1
+                header.rCode = 3
+                strio = BytesIO(message)
+                strio.seek(0)
+                header.encode(strio)
+                self.relay(strio.getvalue(), self.clientAddress)
+                return
 
         if header.answer == 0:  # 查询包
-            print('该包是查询包')
+            # print('该包是查询包')
             self.handleRequest(message)         
         else:  # 应答包
-            print('该包是响应包')
+            # print('该包是响应包')
             self.handleResponse(message, query, header)
 
     def handleRequest(self, message):
@@ -39,7 +53,7 @@ class DnsHandler(BaseRequestHandler):
         if m.queries[0].type not in DEALLIST: # 无法处理的类型就转发
             message = self.transform(m)  # 消息id转换
             self.relay(message, (ADDR, PORT))  # 转发
-            print('请求消息不在可处理范围内,转发数据包到DNS服务器','\n')
+            # print('请求消息不在可处理范围内,转发数据包到DNS服务器','\n')
         else:
             # self.searchRR(m.queries[0].name.name.decode('ascii'), m.queries[0].type)
             # 查找数据库中是否有对应记录
@@ -57,11 +71,11 @@ class DnsHandler(BaseRequestHandler):
                 # CNAME也没查到就转发了
                 if(len(resultCname) == 0):
                     message = self.transform(m)
-                    print('类型可以处理，但在数据库中查找不到对应的资源记录')
+                    # print('类型可以处理，但在数据库中查找不到对应的资源记录')
                     self.relay(message, (ADDR, PORT))
                     return
                 else:
-                    print('CNAME的列表是', resultCname)
+                    # print('CNAME的列表是', resultCname)
                     result = []
                     for item in resultCname:  # 找到所有的Cname
                         sqlStr = 'select * from  DNS where NAME = ? and TYPE = ?'
@@ -71,15 +85,15 @@ class DnsHandler(BaseRequestHandler):
                         result.extend(resultTemp)
                     if(len(result) <= len(resultCname)):  # 不存在要被找的记录就转发
                         message = self.transform(m)
-                        print('类型可以处理，但在数据库中查找不到对应的资源记录')
+                        # print('类型可以处理，但在数据库中查找不到对应的资源记录')
                         self.relay(message, (ADDR, PORT))
                         return
 
             # 自己pack包
-            print('数据库中查到了对应的资源记录,整个的result表是', result)
+            # print('数据库中查到了对应的资源记录,整个的result表是', result)
             # 整理包
             for item in result:
-                # print('the rr:', item[0], item[1], item[2], item[3], item[4])
+                # # print('the rr:', item[0], item[1], item[2], item[3], item[4])
                 rr = database.toRR(item)
                 m.addAnswer(rr)
             m.answer = 1
@@ -96,7 +110,7 @@ class DnsHandler(BaseRequestHandler):
         if curtime - timeStamp > TIMEOUT:
             return
 
-        print('数据包未超时，转发成功')
+        # print('数据包未超时，转发成功')
         self.relay(message, addr)
 
         # 之后把包内数据插入或更新到数据库
@@ -104,12 +118,12 @@ class DnsHandler(BaseRequestHandler):
             if header.arCount == 0 and header.nsCount == 0:  # 没有authority和additional字段才缓存, 有的话不缓存包
                 m = Message()
                 m.fromStr(message)
-                print('转化后的数据包ID为', m.header.id)
+                # print('转化后的数据包ID为', m.header.id)
                 for rr in m.answers:    
                     # TODO 放到数据库
                     sqlStr = 'insert into DNS values (?,?,?,?,?)'
                     if rr.type == MX:
-                        print(rr.rdata.preference, type(rr.rdata.preference))
+                        # print(rr.rdata.preference, type(rr.rdata.preference))
                         rdata = str(rr.rdata.preference) + '|' + rr.rdata.name.name.decode('ascii')              
                     elif rr.type == A:
                         rdata = socket.inet_ntoa(rr.rdata.address)
@@ -118,9 +132,11 @@ class DnsHandler(BaseRequestHandler):
                     value = (rr.name.name.decode('ascii'), rr.type, rr.cls, rr.ttl, rdata)
                     database.fetchall(sqlStr, value)
             else:
-                print('存在权威字段和附加字段，不存储数据包到数据库中')
+                pass
+                # print('存在权威字段和附加字段，不存储数据包到数据库中')
         else:
-            print('要处理的类型属于A,CNAME,MX,NS, 不存储数据包到数据库中')
+            pass
+            # print('要处理的类型属于A,CNAME,MX,NS, 不存储数据包到数据库中')
 
     # ID变换
     def transform(self, m):
@@ -132,7 +148,7 @@ class DnsHandler(BaseRequestHandler):
         idLock.acquire()
         dictLock.acquire()
         idTransDict[packID]=(self.clientAddress, m.header.id, time())
-        print('packID is', packID, 'mapping is', idTransDict[packID])
+        # print('packID is', packID, 'mapping is', idTransDict[packID])
         m.header.id = packID
         packID = self.incID(packID)
         idLock.release()
@@ -160,12 +176,6 @@ class DnsHandler(BaseRequestHandler):
 
     def relay(self, message, addr):
         self.server.socket.sendto(message, addr)
-        
-    def packMessage(self, message):  # 这里message是参考
-        pass
-
-    def unpackMessage(self, message):  # 这里message是拆包对象
-        pass
 
     def incID(self, packID):
 
@@ -173,6 +183,20 @@ class DnsHandler(BaseRequestHandler):
             return 0
         else:
             return packID + 1
+
+    def isShield(self, name):
+
+        sqlStr = 'select RDATA from  DNS where NAME = ? AND TYPE = ?'
+        value = (name, A)
+        result = database.fetchall(sqlStr, value)
+        # print('查询屏蔽表的结果是', result)
+        if(len(result) > 0):
+            for item in result:
+                # print('查找的屏蔽表IP', item[0])
+                if(item[0] == '0.0.0.0'):
+                    return True
+        return False
+
 
 if __name__ == "__main__":
 
@@ -194,7 +218,7 @@ if __name__ == "__main__":
         serverThread = threading.Thread(target = dnsServer.server_forever)
         serverThread.daemon = True
         serverThread.start()
-        print('DnsServer is runnng in thread', serverThread.name , serverThread.ident)
+        # print('DnsServer is runnng in thread', serverThread.name , serverThread.ident)
 
         while True:
             1 == 2 
