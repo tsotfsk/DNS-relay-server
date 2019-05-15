@@ -1,0 +1,48 @@
+2019-05-14 16:09:16,073 - DataBase.py[MainThread] - ERROR: table DNS already exists
+2019-05-14 16:09:16,077 - testserver.py[MainThread] - INFO: DNS中继服务器启动于线程:8848,当前活跃线程数:1
+2019-05-14 16:09:41,969 - UDPAsyncServer.py[Thread-1] - INFO: 正在处理的线程ID:6776, 当前活跃线程数:2
+2019-05-14 16:09:41,969 - testserver.py[Thread-1] - INFO: 收到来自('127.0.0.1', 65101)的请求报文，请求报文消息ID:1,查询域名:1.0.0.127.in-addr.arpa,查询类型:PTR
+2019-05-14 16:09:41,969 - testserver.py[Thread-1] - DEBUG: 请求消息不在可处理范围内,转发数据包到DNS服务器
+2019-05-14 16:09:41,969 - testserver.py[Thread-1] - DEBUG: 转发成功，目标地址是:('10.3.9.5', 53)
+2019-05-14 16:09:41,970 - UDPAsyncServer.py[Thread-2] - INFO: 正在处理的线程ID:4176, 当前活跃线程数:2
+2019-05-14 16:09:41,970 - testserver.py[Thread-2] - INFO: 收到来自('10.3.9.5', 53)的响应报文，响应报文消息ID:0,查询域名:1.0.0.127.in-addr.arpa,查询类型:PTR
+2019-05-14 16:09:41,970 - testserver.py[Thread-2] - DEBUG: 数据包未超时
+2019-05-14 16:09:41,970 - testserver.py[Thread-2] - DEBUG: 转发成功，目标地址是:('127.0.0.1', 65101)
+2019-05-14 16:09:41,970 - testserver.py[Thread-2] - DEBUG: 要处理的类型不属于A,CNAME,MX,NS, 不存储相关资源记录到数据库中
+2019-05-14 16:09:41,971 - UDPAsyncServer.py[Thread-3] - INFO: 正在处理的线程ID:2820, 当前活跃线程数:2
+2019-05-14 16:09:41,971 - testserver.py[Thread-3] - INFO: 收到来自('127.0.0.1', 65102)的请求报文，请求报文消息ID:2,查询域名:www.baidu.com,查询类型:MX
+2019-05-14 16:09:42,032 - testserver.py[Thread-3] - DEBUG: 类型可以处理，但在数据库中查找不到对应的资源记录
+2019-05-14 16:09:42,032 - testserver.py[Thread-3] - DEBUG: 转发成功，目标地址是:('10.3.9.5', 53)
+2019-05-14 16:09:43,237 - UDPAsyncServer.py[Thread-4] - INFO: 正在处理的线程ID:13736, 当前活跃线程数:2
+2019-05-14 16:09:43,237 - testserver.py[Thread-4] - INFO: 收到来自('10.3.9.5', 53)的响应报文，响应报文消息ID:1,查询域名:www.baidu.com,查询类型:MX
+2019-05-14 16:09:43,237 - testserver.py[Thread-4] - DEBUG: 数据包未超时
+2019-05-14 16:09:43,238 - testserver.py[Thread-4] - DEBUG: 转发成功，目标地址是:('127.0.0.1', 65102)
+2019-05-14 16:09:43,238 - testserver.py[Thread-4] - DEBUG: 存在权威字段和附加字段，不存储资源记录到数据库中
+2019-05-14 16:09:59,352 - UDPAsyncServer.py[Thread-5] - INFO: 正在处理的线程ID:7060, 当前活跃线程数:2
+2019-05-14 16:09:59,352 - testserver.py[Thread-5] - INFO: 收到来自('127.0.0.1', 57556)的请求报文，请求报文消息ID:1,查询域名:1.0.0.127.in-addr.arpa,查询类型:PTR
+2019-05-14 16:09:59,352 - testserver.py[Thread-5] - DEBUG: 请求消息不在可处理范围内,转发数据包到DNS服务器
+2019-05-14 16:09:59,352 - testserver.py[Thread-5] - DEBUG: 转发成功，目标地址是:('10.3.9.5', 53)
+2019-05-14 16:09:59,353 - UDPAsyncServer.py[Thread-6] - INFO: 正在处理的线程ID:14160, 当前活跃线程数:2
+2019-05-14 16:09:59,353 - testserver.py[Thread-6] - INFO: 收到来自('10.3.9.5', 53)的响应报文，响应报文消息ID:2,查询域名:1.0.0.127.in-addr.arpa,查询类型:PTR
+2019-05-14 16:09:59,353 - testserver.py[Thread-6] - DEBUG: 数据包未超时
+2019-05-14 16:09:59,353 - testserver.py[Thread-6] - DEBUG: 转发成功，目标地址是:('127.0.0.1', 57556)
+2019-05-14 16:09:59,353 - testserver.py[Thread-6] - DEBUG: 要处理的类型不属于A,CNAME,MX,NS, 不存储相关资源记录到数据库中
+2019-05-14 16:09:59,354 - UDPAsyncServer.py[Thread-7] - INFO: 正在处理的线程ID:12344, 当前活跃线程数:2
+2019-05-14 16:09:59,354 - testserver.py[Thread-7] - INFO: 收到来自('127.0.0.1', 57557)的请求报文，请求报文消息ID:2,查询域名:www.baidu.com,查询类型:A
+2019-05-14 16:09:59,355 - testserver.py[Thread-7] - DEBUG: 数据库中查到了对应的资源记录
+2019-05-14 16:09:59,355 - testserver.py[Thread-7] - DEBUG: 转发成功，目标地址是:('127.0.0.1', 57557)
+2019-05-14 23:15:20,709 - DataBase.py[MainThread] - ERROR: table DNS already exists
+2019-05-14 23:15:20,717 - testserver.py[MainThread] - INFO: DNS中继服务器启动于线程:14664,当前活跃线程数:1
+2019-05-14 23:15:48,647 - UDPAsyncServer.py[Thread-1] - INFO: 正在处理的线程ID:11024, 当前活跃线程数:2
+2019-05-14 23:15:48,655 - testserver.py[Thread-1] - INFO: 收到来自('127.0.0.1', 63176)的请求报文，请求报文消息ID:1,查询域名:1.0.0.127.in-addr.arpa,查询类型:PTR
+2019-05-14 23:15:48,655 - testserver.py[Thread-1] - DEBUG: 请求消息不在可处理范围内,转发数据包到DNS服务器
+2019-05-14 23:15:48,655 - testserver.py[Thread-1] - DEBUG: 转发成功，目标地址是:('10.3.9.5', 53)
+2019-05-14 23:15:48,663 - UDPAsyncServer.py[Thread-2] - INFO: 正在处理的线程ID:8164, 当前活跃线程数:2
+2019-05-14 23:15:48,663 - testserver.py[Thread-2] - INFO: 收到来自('10.3.9.5', 53)的响应报文，响应报文消息ID:0,查询域名:1.0.0.127.in-addr.arpa,查询类型:PTR
+2019-05-14 23:15:48,663 - testserver.py[Thread-2] - DEBUG: 数据包未超时
+2019-05-14 23:15:48,663 - testserver.py[Thread-2] - DEBUG: 转发成功，目标地址是:('127.0.0.1', 63176)
+2019-05-14 23:15:48,663 - testserver.py[Thread-2] - DEBUG: 要处理的类型不属于A,CNAME,MX,NS, 不存储相关资源记录到数据库中
+2019-05-14 23:15:48,663 - UDPAsyncServer.py[Thread-3] - INFO: 正在处理的线程ID:3824, 当前活跃线程数:2
+2019-05-14 23:15:48,663 - testserver.py[Thread-3] - INFO: 收到来自('127.0.0.1', 63177)的请求报文，请求报文消息ID:2,查询域名:www.baidu.com,查询类型:A
+2019-05-14 23:15:48,679 - testserver.py[Thread-3] - DEBUG: 数据库中查到了对应的资源记录
+2019-05-14 23:15:48,679 - testserver.py[Thread-3] - DEBUG: 转发成功，目标地址是:('127.0.0.1', 63177)
