@@ -1,10 +1,9 @@
 import struct
 from io import BytesIO
 import sys, socket
+import logging
 
 # 端口
-ADDR = '10.3.9.5'
-CLIENT = '10.201.8.53'
 PORT = 53
 
 # 超时时限
@@ -24,6 +23,7 @@ IXFR, AXFR, MAILB, MAILA, ALLRECORDS = range(251, 256)
 #QTYPEDICT
 TYPEDICT={A:'A', NS:'NS', MD:'MD', MF:'MF', CNAME:'CNAME', SOA:'SOA', MB:'MB', MG:'MG', MR:'MR',
          NULL:'NULL', WKS:'WKS', PTR:'PTR', HINFO:'HINFO', MINFO:'MINFO', MX:'MX', TXT:'TXT', AAAA:'AAAA'}
+
 # QCLASS
 IN, CS, CH, HS, ALLCLASS = range(1, 6)
 
@@ -220,11 +220,11 @@ class Name:
 
     def encode(self, strio, nameDict=None):
         """
-            eg: www.baidu.com ----> b'\x03www\x05baidu\x03com\x00'
+            eg: www.baidu.com ----> b'\\x03www\\x05baidu\\x03com\\x00'
 
-            如果name在前面出现过，则通过\xc000 | name在strio的位置来表示name
+            如果name在前面出现过，则通过\\xc000 | name在strio的位置来表示name
 
-            比如query中询问的是www.baidu.com 那么在response包中answer字段会出现\xc00c来代替
+            比如query中询问的是www.baidu.com 那么在response包中answer字段会出现\\xc00c来代替
         """
         # 通过将name放到dict中来缩减包所占的空间
         name = self.name
@@ -249,7 +249,7 @@ class Name:
     def decode(self, strio, length=None):
         """
             把name从报文中解析出来
-            eg:b'\x03www\x05baidu\x03com\x00 -----> www.baidu.com
+            eg:b'\\x03www\\x05baidu\\x03com\\x00 -----> www.baidu.com
         """
 
         self.name = b''

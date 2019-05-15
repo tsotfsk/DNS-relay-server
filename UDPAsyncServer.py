@@ -6,6 +6,8 @@ import os
 import errno
 import sys
 import threading
+import logging
+
 from time import monotonic as time
 
 __all__ = ["UDPServer", "BaseRequestHandler"]
@@ -14,7 +16,6 @@ _ServerSelector = selectors.SelectSelector
 class UDPServer:
 
     timeout = None
-    allowReuseAddress = False
     daemonThreads = False
     _blockOnClose = False
     _threads = None
@@ -36,10 +37,8 @@ class UDPServer:
 
     def serverBind(self):
         '''
-            nothing
+            绑定地址
         '''
-        if self.allowReuseAddress:
-            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.socket.bind(self.serverAddress)
         self.serverAddress = self.socket.getsockname()
 
@@ -101,7 +100,7 @@ class UDPServer:
 
     def processRequestThread(self, request, client_address):
 
-        print('--------正在处理的线程ID:', threading.current_thread().ident, '当前活跃线程数:',threading.active_count(), '--------')
+        logging.info('正在处理的线程ID:{}, 当前活跃线程数:{}'.format(threading.current_thread().ident, threading.active_count()))
         try:
             self.finishRequest(request, client_address)
         except Exception:
