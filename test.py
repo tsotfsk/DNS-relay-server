@@ -4,7 +4,7 @@ import socket
 from time import monotonic as time
 
 from DNSMessage import *
-from UDPAsyncServer import *
+from UDPServer import *
 
 
 # message的request封包测试
