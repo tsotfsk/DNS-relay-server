@@ -1,4 +1,4 @@
-from UDPAsyncServer import *
+from UDPServer import *
 import threading
 import time
 import sys
