@@ -203,7 +203,7 @@ def getOpt():
     group.add_argument('-dd', action='store_true', help='调试信息级别1(仅输出时间坐标，序号，客户端IP地址，查询的域名)')
     group.add_argument('-d', action='store_true', help='调试信息级别2(输出冗长的调试信息)')
     parser.add_argument('dns_server_ipaddr', nargs='?', default='10.9.3.4', help='指定的名字服务器')
-    parser.add_argument('filename', nargs='?', default='dnslog.log', help='指定的配置文件')
+    parser.add_argument('filename', nargs='?', default='dnslog.log', help='指定的日志文件')
 
     # 得到参数字典
     args = parser.parse_args()
@@ -217,11 +217,11 @@ if __name__ == "__main__":
 
     if argDict['d']:  # 输出INFO级别以及以上的信息
         logging.basicConfig(level=logging.INFO,
-                            filename=argDict['filename'],
+                            # filename=argDict['filename'],
                             format='%(asctime)s - %(levelname)s: %(message)s')
     elif argDict['dd']:  # 输出DEBUG级别以及以上的信息
         logging.basicConfig(level=logging.DEBUG,
-                            filename=argDict['filename'],
+                            # filename=argDict['filename'],
                             format='%(asctime)s - %(filename)s[%(threadName)s] - %(levelname)s: %(message)s')
     else:
         logging.basicConfig()
@@ -240,4 +240,4 @@ if __name__ == "__main__":
     # 在主线程启动UDPAsyncServer
     with UDPServer(('0.0.0.0', 53), DnsHandler) as dnsServer:
         logging.info('DNS中继服务器启动于线程:{},当前活跃线程数:{}'.format(threading.current_thread().ident, threading.active_count()))
-        dnsServer.server_forever()
+        dnsServer.serverForever()
