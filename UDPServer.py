@@ -18,7 +18,7 @@ class UDPServer:
     '''
         一个采用多路I/O复用的UDP服务器
     '''
-    daemonThreads = False
+    daemonThreads = False  # 备用
     threads = None
 
     def __init__(self, serverAddress, HandleClass):
@@ -64,6 +64,7 @@ class UDPServer:
         try:
             request, clientAddress = self.getRequest()
         except OSError:
+            # XXX:这里会报错WIN ERROR 10054, 目前没找到解决方案，网上描述这是windows漏洞,忽略即可
             return
         
         try:
@@ -84,7 +85,9 @@ class UDPServer:
             logging.error(e)
 
     def processRequest(self, request, clientAddress):
-        """开启一个线程去处理消息"""
+        '''
+            开启一个线程去处理消息
+        '''
         t = threading.Thread(target = self.processRequestThread,
                              args = (request, clientAddress))
         t.daemon = self.daemonThreads
@@ -125,12 +128,14 @@ class BaseRequestHandler:
             self.finish()
 
     def setup(self):
+        # TODO:计划在这里对一个类的启动进行一些必要的初始化或者预处理操作，比如配置调试信息
         pass
 
     def handle(self):
         pass
 
     def finish(self):
+        # TODO:计划在这里采用消息队列并且互斥的方式存储logging信息，但是没有时间和精力完成，因此作罢
         pass
    
 
