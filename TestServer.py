@@ -1,11 +1,11 @@
 import argparse
 import logging
 import threading
-from time import monotonic as time
+from time import time
 
 from DataBase import *
 from DNSMessage import *
-from UDPAsyncServer import *
+from UDPServer import *
 
 
 class DnsHandler(BaseRequestHandler):
@@ -52,6 +52,7 @@ class DnsHandler(BaseRequestHandler):
         '''请求报文的处理'''
         m = Message()
         m.fromStr(message)
+        curtime = time()
         if m.queries[0].type not in DEALLIST: # 无法处理的类型就转发
             message = self.transform(m)  # 消息id转换
             logging.debug('请求消息不在可处理范围内,转发数据包到DNS服务器')
@@ -60,14 +61,14 @@ class DnsHandler(BaseRequestHandler):
             # 查找数据库中是否有对应记录
             sqlStr = 'select * from  DNS where NAME = ? and TYPE = ?'
             value = (m.queries[0].name.name.decode('ascii'), m.queries[0].type)
-            result = database.fetchall(sqlStr, value)  
+            result = database.selectRR(curtime, sqlStr, value)  
             
             if len(result) == 0:  # 查不到结果就查CNAME
                 resultCname = []
                 if(m.queries[0].type != CNAME):  # 当请求不是CNAME的时候才去查CNAME
                     sqlStr = 'select * from  DNS where NAME = ? and TYPE = ?'
                     value = (m.queries[0].name.name.decode('ascii'), CNAME)
-                    resultCname = database.fetchall(sqlStr, value)
+                    resultCname = database.selectRR(curtime, sqlStr, value)
 
                 # CNAME也没查到就转发了
                 if len(resultCname) == 0:
@@ -80,9 +81,10 @@ class DnsHandler(BaseRequestHandler):
                     for item in resultCname:  # 找到所有的Cname
                         sqlStr = 'select * from  DNS where NAME = ? and TYPE = ?'
                         value = (item[4], m.queries[0].type)
-                        resultTemp = database.fetchall(sqlStr, value)
-                        result.append(item)
-                        result.extend(resultTemp)
+                        resultTemp = database.selectRR(curtime, sqlStr, value)
+                        if len(resultTemp) > 0:  # 只有对应的cname查找到了对应的记录才会加入结果列表中 
+                            result.append(item)
+                            result.extend(resultTemp)
                     if len(result) <= len(resultCname):  # 不存在要被找的记录就转发
                         message = self.transform(m)
                         logging.debug('类型可以处理，但在数据库中查找不到对应的资源记录')
@@ -119,18 +121,18 @@ class DnsHandler(BaseRequestHandler):
                 m.fromStr(message)
                 for rr in m.answers:    
                     # TODO 放到数据库
-                    sqlStr = 'insert into DNS values (?,?,?,?,?)'
+                    sqlStr = 'insert into DNS values (?,?,?,?,?,?)'
                     if rr.type == MX:
                         rdata = str(rr.rdata.preference) + '|' + rr.rdata.name.name.decode('ascii')              
                     elif rr.type == A:
                         rdata = socket.inet_ntoa(rr.rdata.address)
                     else:
                         rdata = rr.rdata.name.name.decode('ascii')
-                    value = (rr.name.name.decode('ascii'), rr.type, rr.cls, rr.ttl, rdata)
+                    value = (rr.name.name.decode('ascii'), rr.type, rr.cls, rr.ttl, rdata, curtime)
                     database.fetchall(sqlStr, value)
             else:
                 pass
-                logging.debug('存在权威字段和附加字段，不存储资源记录到数据库中')
+                logging.debug('存在权威字段和附加字段, 不存储资源记录到数据库中')
         else:
             pass
             logging.debug('要处理的类型不属于A,CNAME,MX,NS, 不存储相关资源记录到数据库中')
@@ -172,6 +174,7 @@ class DnsHandler(BaseRequestHandler):
         return strio.getvalue(), addr, timeStamp
 
     def relay(self, message, addr):
+        
         self.server.socket.sendto(message, addr)
         logging.debug('转发成功，目标地址是:{}'.format(addr))
 
@@ -179,8 +182,7 @@ class DnsHandler(BaseRequestHandler):
 
         if packID == 65535:
             return 0
-        else:
-            return packID + 1
+        return packID + 1
 
     def isShield(self, name):
 
@@ -191,7 +193,7 @@ class DnsHandler(BaseRequestHandler):
         if len(result) > 0:
             for item in result:
                 # print('查找的屏蔽表IP', item[0])
-                if(item[0] == '0.0.0.0'):
+                if item[0] == '0.0.0.0':
                     return True
         return False
 
@@ -222,7 +224,7 @@ if __name__ == "__main__":
     elif argDict['dd']:  # 输出DEBUG级别以及以上的信息
         logging.basicConfig(level=logging.DEBUG,
                             # filename=argDict['filename'],
-                            format='%(asctime)s - %(filename)s[%(threadName)s] - %(levelname)s: %(message)s')
+                            format='%(asctime)s - %(filename)s[line:%(lineno)d][%(threadName)s] - %(levelname)s: %(message)s')
     else:
         logging.basicConfig()
 
