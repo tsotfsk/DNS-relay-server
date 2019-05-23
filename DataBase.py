@@ -2,7 +2,6 @@ import sqlite3
 import logging
 from DBUtils.PooledDB import PooledDB
 from DNSMessage import *
-sqlite3.threadsafety = 2
 
 class DataBase:
     
@@ -53,6 +52,7 @@ class DNSDataBase(DataBase):
                 CLASS       SMALLINT            CHECK(CLASS >= 0 AND CLASS <= 65535),
                 TTL              INT            CHECK(TTL >= 0),
                 RDATA           TEXT            NOT NULL,
+                TIMESTAMP       TEXT            NOT NULL,
                 PRIMARY KEY     (NAME, TYPE, CLASS, RDATA));''')
         except Exception as e:
             logging.error(e)
