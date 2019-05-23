@@ -211,9 +211,6 @@ class Header:
     #             self.recAv, self.authority, self.rCode, self.trunc,
     #             self.qdCount, self.anCount, self.nsCount, self.arCount)
 class Name:
-    """
-        域名的类
-    """
 
     def __init__(self, name=b''):
         self.name = name
@@ -312,7 +309,7 @@ class ResourceRecord:
         self.type = type
         self.cls = cls
         self.ttl = ttl
-        if len(rdata) > 0:
+        if len(rdata) > 0:  # 针对不同的类型构造不同的类
             if self.type == A:
                 self.rdata = RecordA(rdata['address'])
             elif self.type == MX:
@@ -350,9 +347,7 @@ class ResourceRecord:
         self.rdata.decode(strio)
 
 class RecordA:
-    """
-        A记录主要记录一个域名
-    """
+
     typ = A
     def __init__(self, address='0.0.0.0'):
         address = socket.inet_aton(address)  # 将字符串的ip地址转化为网络字节序的ip 
@@ -367,9 +362,7 @@ class RecordA:
 
 
 class RecordMX:
-    """
-        Mail exchange.
-    """
+
     typ = MX
 
     def __init__(self, preference=0, exchange=b''):
@@ -407,7 +400,6 @@ class RecordCNAME:
       
     def encode(self, strio, compDict = None):
         self.name.encode(strio, compDict)
-
 
     def decode(self, strio, length = None):
         self.name = Name()
