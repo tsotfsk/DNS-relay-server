@@ -1,7 +1,7 @@
 from socket import * 
 
 if __name__ == "__main__":
-    addr = ('10.3.9.5', 53)
+    addr = ('127.0.0.1', 53)
     testClient = socket(AF_INET, SOCK_DGRAM,0)
     while True:
         inp = input('数据：').strip()

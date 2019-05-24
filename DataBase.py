@@ -29,7 +29,7 @@ class DataBase:
             result = cursor.fetchall()
         except:
             try:
-                if 'insert' in sqlStr: # 插入出错，也就是不满足完整性约束，那么就采取更新的策略
+                if 'insert' in sqlStr:  # 插入出错，也就是不满足完整性约束，那么就采取更新的策略
                     newSqlStr = 'update DNS set TTL = ? , RDATA = ?, TIMESTAMP = ? where Name = ? and TYPE = ? and CLASS = ? and RDATA = ?'
                     newValue = (value[3], value[4], value[5], value[0], value[1], value[2], value[4])
                     cursor.execute(newSqlStr, newValue)
