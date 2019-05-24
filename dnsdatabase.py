@@ -1,7 +1,7 @@
 import sqlite3
 import logging
 from DBUtils.PooledDB import PooledDB
-from DNSMessage import *
+from message import *
 from time import time
 
 class DataBase:
