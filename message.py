@@ -107,11 +107,17 @@ class Message:
         self.answers.append(record)
 
     def toStr(self):
+        '''
+            将message转化为字节流
+        '''
         strio = BytesIO()
         self.encode(strio)
         return strio.getvalue()
 
     def fromStr(self, str):
+        '''
+            将字节流转化为message
+        '''
         strio = BytesIO(str)
         self.decode(strio)
 

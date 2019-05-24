@@ -104,7 +104,7 @@ class DNSDataBase(DataBase):
         self.fetchall(sqlStr, value)
 
 if __name__ == "__main__":
-    database = DNSDataBase(mincached=0, maxcached=0, maxconnections=10, database='DNSDataBase.db')
+    database = DNSDataBase(mincached=0, maxcached=0, maxconnections=10, database='dns.db')
     rr = database.toRR(('www.baidu.com', CNAME, IN, 201, 'www.a.fen.com'))
 
     

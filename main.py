@@ -3,9 +3,9 @@ import logging
 import threading
 from time import time
 
-from DataBase import *
-from DNSMessage import *
-from UDPServer import *
+from database import *
+from message import *
+from udpserver import *
 
 
 class DnsHandler(BaseRequestHandler):
@@ -109,6 +109,7 @@ class DnsHandler(BaseRequestHandler):
         # 如果超时就return了,不再转发
         curtime = time()
         if curtime - timeStamp > TIMEOUT:
+            logging.debug('数据包超时,不做转发')
             return
 
         logging.debug('数据包未超时')
@@ -237,7 +238,7 @@ if __name__ == "__main__":
     idLock = threading.Lock()
     
     # 实例化一个带连接池的数据库，支持最大20各连接，初始生成5个连接，最大空闲连接数量是10
-    database = DNSDataBase(mincached=5, maxcached=10, maxconnections=20, database='DNSDataBase.db')
+    database = DNSDataBase(mincached=5, maxcached=10, maxconnections=20, database='dns.db')
 
     # 在主线程启动UDPAsyncServer
     with UDPServer(('0.0.0.0', 53), DnsHandler) as dnsServer:

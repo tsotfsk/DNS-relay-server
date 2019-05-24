@@ -3,8 +3,8 @@ from io import BytesIO
 import socket
 from time import monotonic as time
 
-from DNSMessage import *
-from UDPServer import *
+from message import *
+from udpserver import *
 
 
 # message的request封包测试
