@@ -1,2 +1,2 @@
 # DNS-relay-server
-## homework
+## dns中继服务器
